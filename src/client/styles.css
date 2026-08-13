@@ -1,0 +1,121 @@
+/* Terminal panel styles. Colors ride the dsh theme tokens where they exist,
+   with dark fallbacks so the panel remains legible independent of theme. */
+
+.dsh-terminal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 120px;
+  background: var(--dsw-surface, #1e1e1e);
+  border: 1px solid var(--dsw-border, #333);
+  border-radius: 6px;
+  overflow: hidden;
+  user-select: none;
+}
+
+.dsh-terminal-drag {
+  flex: none;
+  height: 4px;
+  cursor: ns-resize;
+  background: transparent;
+}
+
+.dsh-terminal-drag:hover {
+  background: var(--dsw-border, #444);
+}
+
+.dsh-terminal-titlebar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--dsw-border, #333);
+  background: var(--dsw-surface-2, #252526);
+}
+
+.dsh-terminal-select {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 200px;
+  height: 24px;
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--dsw-text, #ccc);
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+
+.dsh-terminal-select option {
+  color: #ccc;
+  background: #252526;
+}
+
+.dsh-terminal-spacer {
+  flex: 1 1 auto;
+}
+
+.dsh-terminal-action {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--dsw-text, #ccc);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dsh-terminal-action:hover {
+  background: var(--dsw-hover, rgba(255, 255, 255, 0.08));
+}
+
+.dsh-terminal-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.dsh-terminal-view {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 6px 8px;
+}
+
+.dsh-terminal-view .xterm {
+  height: 100%;
+}
+
+.dsh-terminal-empty {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-text-muted, #888);
+  font-size: 12px;
+}
+
+.dsh-terminal-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--dsw-text-muted, #999);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.dsh-terminal-toggle:hover {
+  color: var(--dsw-text, #eee);
+  background: var(--dsw-hover, rgba(255, 255, 255, 0.08));
+}
