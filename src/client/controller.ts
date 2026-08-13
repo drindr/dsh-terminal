@@ -51,10 +51,16 @@ export class TerminalController {
   }
 
   /** Ask the host to spawn a shell and return its local identity + title. */
-  create(cols: number, rows: number): { id: string; title: string } {
+  create(cols: number, rows: number, cwd?: string): { id: string; title: string } {
     this.counter += 1
     const id = `${Date.now().toString(36)}-${this.counter}-${Math.random().toString(36).slice(2, 8)}`
-    this.send({ type: 'create', terminalId: id, cols, rows })
+    this.send({
+      type: 'create',
+      terminalId: id,
+      cols,
+      rows,
+      ...(cwd !== undefined && cwd !== '' ? { cwd } : {}),
+    })
     return { id, title: `终端 ${this.counter}` }
   }
 

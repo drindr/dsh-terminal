@@ -32,8 +32,8 @@ export function apply(ctx: ClientContext): void {
     order: 100,
     store,
     inject: (_sessionId, actions): TerminalPanelInjected => ({
-      newTerminal: () => {
-        const created = controller.create(80, 24)
+      newTerminal: (cwd) => {
+        const created = controller.create(80, 24, cwd)
         actions.addTerminal({ id: created.id, title: created.title })
         return created.id
       },

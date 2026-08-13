@@ -8,8 +8,8 @@ import { TerminalTitleBar } from './TerminalTitleBar.tsx'
 
 /** Registrant business face: controller operations wired to the store. */
 export interface TerminalPanelInjected {
-  /** Spawn a host PTY, add it to the store, and return its id. */
-  newTerminal(): string
+  /** Spawn a host PTY in the given cwd, add it to the store, and return its id. */
+  newTerminal(cwd?: string): string
   write(id: string, data: string): void
   resize(id: string, cols: number, rows: number): void
   /** Kill the host PTY and drop its store row. */
@@ -32,11 +32,12 @@ function isTypingTarget(element: Element | null): boolean {
 }
 
 export function TerminalPanel(props: TerminalPanelProps) {
-  const { useStore, actions, newTerminal, write, resize, closeTerminal, subscribe } = props
+  const { useStore, actions, newTerminal, write, resize, closeTerminal, subscribe, useSessions, sessionId } = props
   const open = useStore(state => state.open)
   const height = useStore(state => state.height)
   const terminals = useStore(state => state.terminals)
   const activeId = useStore(state => state.activeId)
+  const cwd = useSessions(state => state.byId[sessionId]?.cwd)
   const heightRef = useRef(height)
   heightRef.current = height
   const wasOpenRef = useRef(false)
@@ -49,8 +50,8 @@ export function TerminalPanel(props: TerminalPanelProps) {
     wasOpenRef.current = open
     if (!open || terminals.length > 0) return
     if (wasOpen) actions.closePanel()
-    else newTerminal()
-  }, [open, terminals.length, newTerminal, actions])
+    else newTerminal(cwd)
+  }, [open, terminals.length, newTerminal, actions, cwd])
 
   // Global Ctrl+` toggles the panel while a session is current.
   useEffect(() => {
@@ -93,7 +94,7 @@ export function TerminalPanel(props: TerminalPanelProps) {
         terminals={terminals}
         activeId={activeId}
         onSelect={id => { actions.setActive(id) }}
-        onNew={() => { newTerminal() }}
+        onNew={() => { newTerminal(cwd) }}
         onCloseCurrent={() => { if (active !== null) closeTerminal(active.id) }}
         onClosePanel={() => { actions.closePanel() }}
       />
