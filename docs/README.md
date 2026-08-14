@@ -1,39 +1,43 @@
 # dsh-terminal 插件文档
 
 VSCode 风格的内置终端面板：浏览器端 [xterm.js](https://xtermjs.org) + 宿主端 [node-pty](https://github.com/microsoft/node-pty)。
-非侵入：不修改 dsh 框架本体，仅作为 `plugins/terminal/` 插件包挂载到 web profile。
+这是一个独立的 dsh web 插件包，挂载到任意 `web` profile，不依赖任何特定 GUI 壳。
 
 ## 结构
 
 ```
-src/index.ts              宿主半端：/terminal WebSocket upgrade 路由 + 信任校验 + teardown
-src/host/manager.ts       宿主半端：终端会话管理（node-pty 生命周期 / 消息路由 / 编码与 shell 选择）
-src/client/index.ts       浏览器半端：槽位注册（conversation.composer.dock + conversation.input.right）
-src/client/TerminalView.tsx 单个 xterm.js 实例
-src/client/TerminalPanel.tsx / TerminalTitleBar.tsx / TerminalToggleButton.tsx  面板 UI
-src/client/controller.ts  浏览器 ↔ 宿主 WebSocket 控制器
-src/client/store.ts       会话级终端列表与编号（UI 状态）
-build.mjs                 esbuild 构建：lib/index.js（Host）+ lib/client.js（Browser module）
-docs/                    本目录（插件文档）
+dsh-terminal/             本包根目录
+  src/index.ts            宿主半端：/terminal WebSocket upgrade 路由 + 信任校验 + teardown
+  src/host/manager.ts     宿主半端：终端会话管理（node-pty 生命周期 / 消息路由 / 编码与 shell 选择）
+  src/client/index.ts     浏览器半端：槽位注册（conversation.composer.dock + conversation.input.right）
+  src/client/TerminalView.tsx 单个 xterm.js 实例
+  src/client/TerminalPanel.tsx / TerminalTitleBar.tsx / TerminalToggleButton.tsx  面板 UI
+  src/client/controller.ts 浏览器 ↔ 宿主 WebSocket 控制器
+  src/client/store.ts      会话级终端列表与编号（UI 状态）
+  build.mjs                esbuild 构建：lib/index.js（Host）+ lib/client.js（Browser module）
+  docs/                   本目录（插件文档）
 ```
 
 ## 构建与安装
 
 ```powershell
-# 从仓库根目录
-npm run install:plugins   # 构建 + 安装 + 挂载 plugins/ 下所有插件
-# 或单独（在 plugins/terminal 下）
-node build.mjs
+# 在本包根目录构建
+pnpm install
+pnpm run build
+
+# 安装到 web profile（DSH_HOME 决定 harness home，缺省 ~/.dsh）
+dsh plugin --profile web add link:.
 ```
 
-挂载到 web profile（由 `npm run install:plugins` 自动完成，等价于）：
+然后在 `$DSH_HOME/profiles/web/cordis.patch.yml` 中加入（`dsh plugin add` 只建依赖，不挂载）：
 
-```text
-注入 .dsh/profiles/web/package.json      "dsh-terminal": "link:./plugins/terminal"
-注入 .dsh/profiles/web/cordis.patch.yml  - id: terminal / name: dsh-terminal
+```yaml
+- insert:
+    - id: terminal
+      name: dsh-terminal
 ```
 
-宿主半端改动（如本目录的编码/shell 选择）需要**重启 dsh-gui** 才会生效
+宿主半端改动（如编码/shell 选择）需要**重启 dsh 宿主进程**才会生效
 （宿主进程按启动时读取 `lib/index.js`）；浏览器半端改动刷新页面即可（dev:web 构建下可热更新）。
 
 ## Shell 选择与中文（UTF-8）支持
@@ -60,7 +64,7 @@ node build.mjs
 
 - 终端进程随浏览器页面存活：刷新/关闭标签页即终止该页的全部终端。
 - 关闭终端或插件卸载时，`TerminalManager.disposeSocket` / 会话 `dispose` 会回收 node-pty 进程。
-- Windows 桌面外壳无控制台启动宿主进程时，node-pty 关闭可能打印 `AttachConsole failed` 告警，
+- Windows 下宿主进程由无控制台的壳（例如 GUI 应用）托管时，node-pty 关闭可能打印 `AttachConsole failed` 告警，
   不影响终端功能（见主 README「已知限制」）。
 
 ## 终端尺寸同步（避免输出在第 80 列被截断/换行）
