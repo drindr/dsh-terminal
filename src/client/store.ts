@@ -10,6 +10,8 @@ import { defineStore } from '@deepseek-ai/dsh-client-runtime/client'
 export interface TerminalMeta {
   id: string
   title: string
+  /** Session-local display number (1, 2, …); recycled when a row closes. */
+  number: number
 }
 
 interface TerminalStoreState {
@@ -28,7 +30,20 @@ export function createTerminalStore() {
       openPanel: (d) => { d.open = true },
       closePanel: (d) => { d.open = false },
       setHeight: (d, height: number) => { d.height = height },
-      addTerminal: (d, meta: TerminalMeta) => { d.terminals.push(meta); d.activeId = meta.id },
+      /**
+       * Add a terminal row, numbering it inside this session's list: the
+       * smallest positive integer no other open terminal in this session uses,
+       * so closing terminal N frees N for the next creation. Store instances
+       * are session-scoped (`conversation.composer.dock` declares
+       * `scope: 'session'`), which restarts numbering per session.
+       */
+      addTerminal: (d, id: string) => {
+        const used = new Set(d.terminals.map(terminal => terminal.number))
+        let number = 1
+        while (used.has(number)) number += 1
+        d.terminals.push({ id, title: `终端 ${number}`, number })
+        d.activeId = id
+      },
       removeTerminal: (d, id: string) => {
         d.terminals = d.terminals.filter(terminal => terminal.id !== id)
         if (d.activeId === id) d.activeId = d.terminals[0]?.id ?? null

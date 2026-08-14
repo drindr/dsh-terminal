@@ -25,7 +25,6 @@ export class TerminalController {
   private socket: WebSocket | null = null
   private readonly handlers = new Map<string, TerminalHandlers>()
   private readonly outbox: string[] = []
-  private counter = 0
 
   /** Open (or reuse) the page's terminal socket, flushing queued sends on open. */
   private connect(): WebSocket {
@@ -50,10 +49,14 @@ export class TerminalController {
     else this.outbox.push(encoded)
   }
 
-  /** Ask the host to spawn a shell and return its local identity + title. */
-  create(cols: number, rows: number, cwd?: string): { id: string; title: string } {
-    this.counter += 1
-    const id = `${Date.now().toString(36)}-${this.counter}-${Math.random().toString(36).slice(2, 8)}`
+  /**
+   * Ask the host to spawn a shell and return its globally-unique local id.
+   * Display numbering is the per-session store's concern (`addTerminal`), not
+   * this page-global controller's: a shared counter here would leak across
+   * sessions and never recycle freed numbers.
+   */
+  create(cols: number, rows: number, cwd?: string): string {
+    const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
     this.send({
       type: 'create',
       terminalId: id,
@@ -61,7 +64,7 @@ export class TerminalController {
       rows,
       ...(cwd !== undefined && cwd !== '' ? { cwd } : {}),
     })
-    return { id, title: `终端 ${this.counter}` }
+    return id
   }
 
   /** Forward keystrokes to the host PTY. */

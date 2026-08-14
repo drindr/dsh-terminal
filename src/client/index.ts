@@ -33,9 +33,9 @@ export function apply(ctx: ClientContext): void {
     store,
     inject: (_sessionId, actions): TerminalPanelInjected => ({
       newTerminal: (cwd) => {
-        const created = controller.create(80, 24, cwd)
-        actions.addTerminal({ id: created.id, title: created.title })
-        return created.id
+        const id = controller.create(80, 24, cwd)
+        actions.addTerminal(id)
+        return id
       },
       write: (id, data) => { controller.write(id, data) },
       resize: (id, cols, rows) => { controller.resize(id, cols, rows) },

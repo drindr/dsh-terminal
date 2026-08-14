@@ -12,7 +12,7 @@ src/client/index.ts       浏览器半端：槽位注册（conversation.composer
 src/client/TerminalView.tsx 单个 xterm.js 实例
 src/client/TerminalPanel.tsx / TerminalTitleBar.tsx / TerminalToggleButton.tsx  面板 UI
 src/client/controller.ts  浏览器 ↔ 宿主 WebSocket 控制器
-src/client/store.ts       会话级终端列表的 UI 状态
+src/client/store.ts       会话级终端列表与编号（UI 状态）
 build.mjs                 esbuild 构建：lib/index.js（Host）+ lib/client.js（Browser module）
 docs/                    本目录（插件文档）
 ```
@@ -80,6 +80,17 @@ node build.mjs
 
 > 若某次看到仍在 80 列截断，多半是面板本身宽度正好容纳约 80 个字符（终端按面板宽度
 > 自动换行属正常行为）；此时应调宽面板/窗口，而不是期望关闭自动换行。
+
+## 终端编号（会话内递增 + 回收）
+
+终端显示编号为**会话内递增**且**回收复用**：
+
+- 编号由会话级 store 的 `addTerminal` 分配，规则是「当前会话内最小的未用正整数」：
+  关闭终端 N 后，它的编号归空闲，下一次新建在当前会话从 N 重新开始。
+- `conversation.composer.dock` 槽位声明为 `scope: 'session'`，每个会话各有一个 store
+  实例，因此每个会话的编号都从「终端 1」开始，互不串号。
+- `TerminalController.create` 只负责生成全局唯一的终端 id（时间戳 + 随机后缀），
+  不再持有跨会话的全局计数器。
 
 ## 已知限制
 
