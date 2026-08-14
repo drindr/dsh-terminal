@@ -23,6 +23,37 @@ pnpm run build
 
 产物：`lib/index.js`（宿主端）、`lib/client.js`（浏览器端，内联 xterm.js）。
 
+## 开发热重载
+
+改源码时不用重启桌面外壳，也不用刷新页面：
+
+```powershell
+pnpm run dev        # watch.mjs：监听 src/**，改动后自动重新构建两个产物
+```
+
+改完即生效，两条链路都是运行中的 `dsh web` 自带的：
+
+- **浏览器端（无需刷新页面）**：`dsh-client-hmr` 每 500ms 轮询 `lib/client.js`，
+  内容变化就重新哈希并通过 `/plugins/events` SSE 推送 `rebuilt` 帧，页面热替换模块。
+- **宿主端（无需重启外壳）**：cordis `hmr` 监视本包的真实路径，`lib/index.js`
+  变化时重建 `dsh-terminal` fiber（WebSocket 路由会重新注册，已开终端会被回收）。
+
+前提（已配置在 `.dsh/profiles/web/cordis.patch.yml`）：
+
+- `hmr` 行默认被 web-app bundle `disabled: true`（Web 模式只保留 root:[] 的兜底实例
+  用于 patch 文件热载），需要在该 patch 里 `disabled: false` 并把它 `root` 扩到本包
+  真实路径——`link:` 装的插件经 node_modules 符号链接解析，而 hmr 默认忽略
+  node_modules，不扩 root 就永远看不到 bundle 变化。
+- 该配置在**下一次 `dsh web` 启动**时生效：兜底 hmr 实例已占用 `hmr` 服务名，
+  热补丁无法在运行中替换它（`ctx.provide` 对重复注册抛错），需要重启一次外壳。
+  重启之后，源码改动即可全程热重载，无需再重启。
+
+> 小提示：构建器在产物字节完全一致时不会覆写文件（`commitIfChanged`），所以只改
+> 客户端源码不会白白触发宿主 fiber 重载，反之亦然。
+
+> 本仓库的 Node 是 v26，系统自带 pnpm 7.x 与之不兼容，请用仓库固定的
+> `E:\Git\dsh-gui\.toolchain\pnpm.cmd`（11.7.0）代替裸 `pnpm`。
+
 ## 安装
 
 本插件面向 dsh 的 `web` profile，安装与宿主壳无关：

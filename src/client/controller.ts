@@ -102,3 +102,4 @@ export class TerminalController {
     else if (message.type === 'error') handlers.onError(message.message ?? 'terminal error')
   }
 }
+

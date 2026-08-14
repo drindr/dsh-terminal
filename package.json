@@ -19,7 +19,8 @@
     }
   },
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "dev": "node watch.mjs"
   },
   "license": "Unlicense",
   "dependencies": {
