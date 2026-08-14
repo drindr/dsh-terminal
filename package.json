@@ -13,6 +13,9 @@
   "dsh": {
     "client": {
       "platform": "web"
+    },
+    "gui": {
+      "mountId": "terminal"
     }
   },
   "scripts": {

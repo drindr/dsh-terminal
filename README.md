@@ -22,17 +22,27 @@ pnpm run build
 
 产物：`lib/index.js`（宿主端）、`lib/client.js`（浏览器端，内联 xterm.js）。
 
+> 桌面外壳的 `.\scripts\build.ps1`（和 `setup.ps1`）现在会自动执行上面的
+> 构建 + `dsh plugin --profile web add` 安装 + cordis.patch.yml 挂载
+> （`scripts\install-plugins.ps1`），无需手动重复。
+
 > 本仓库的 Node 是 v26，系统自带 pnpm 7.x 与之不兼容，请用仓库固定的
 > `E:\Git\dsh-gui\.toolchain\pnpm.cmd`（11.7.0）代替裸 `pnpm`。
 
 ## 安装
+
+自动路径：直接运行 `.\scripts\install-plugins.ps1`（或 `build.ps1`），脚本会
+构建、安装并把插件挂进 web 组合（挂载 id 来自 `package.json` 的
+`dsh.gui.mountId`，本插件为 `terminal`）。
+
+手动路径等价于以下两步：
 
 ```powershell
 # 从仓库根目录；DSH_HOME 已固定为 .dsh。同样请用 .toolchain\pnpm.cmd。
 dsh plugin --profile web add link:./plugins/terminal
 ```
 
-然后把插件挂进 web 组合（`dsh plugin add` 只建依赖，不挂载）。在 `.dsh/profiles/web/cordis.patch.yml` 中加入一行：
+然后在 `.dsh/profiles/web/cordis.patch.yml` 中加入（`dsh plugin add` 只建依赖，不挂载）：
 
 ```yaml
 - insert:
