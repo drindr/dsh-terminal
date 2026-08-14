@@ -22,17 +22,17 @@ pnpm run build
 
 产物：`lib/index.js`（宿主端）、`lib/client.js`（浏览器端，内联 xterm.js）。
 
-> 桌面外壳的 `.\scripts\build.ps1`（和 `setup.ps1`）现在会自动执行上面的
+> 桌面外壳的 `npm run build`（和 `npm run setup`）现在会自动执行上面的
 > 构建 + `dsh plugin --profile web add` 安装 + cordis.patch.yml 挂载
-> （`scripts\install-plugins.ps1`），无需手动重复。
+> （`npm run install:plugins`），无需手动重复。
 
 > 本仓库的 Node 是 v26，系统自带 pnpm 7.x 与之不兼容，请用仓库固定的
 > `E:\Git\dsh-gui\.toolchain\pnpm.cmd`（11.7.0）代替裸 `pnpm`。
 
 ## 安装
 
-自动路径：直接运行 `.\scripts\install-plugins.ps1`（或 `build.ps1`），脚本会
-构建、安装并把插件挂进 web 组合（挂载 id 来自 `package.json` 的
+自动路径：在仓库根目录直接运行 `npm run install:plugins`（或 `npm run build`），
+CLI 会构建、安装并把插件挂进 web 组合（挂载 id 来自 `package.json` 的
 `dsh.gui.mountId`，本插件为 `terminal`）。
 
 手动路径等价于以下两步：
@@ -50,7 +50,7 @@ dsh plugin --profile web add link:./plugins/terminal
       name: dsh-terminal
 ```
 
-重启桌面外壳（`.\scripts\run.ps1` 或直接运行 `src-tauri\target\debug\dsh-gui.exe`）后生效。
+重启桌面外壳（`npm start` 或直接运行仓库根目录的入口二进制）后生效。
 
 ## 已知限制
 
