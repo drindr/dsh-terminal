@@ -3,10 +3,14 @@
  * browser terminal id; a WebSocket owns its terminals and tears them all down
  * when the socket closes (page unload / tab close).
  *
- * The shell choice is a deployment fact, not a product tunable: `powershell.exe`
- * on Windows (always present, matches node-pty's ConPTY default), otherwise the
- * ambient login shell. `DSH_TERMINAL_SHELL` overrides for local experimentation.
+ * The shell choice is a deployment fact, not a product tunable: on Windows we
+ * prefer PowerShell 7 (`pwsh`) whenever it is installed and fall back to the
+ * always-present Windows PowerShell 5.1 (`powershell.exe`) bootstrapped into
+ * UTF-8 mode; everywhere else we use the ambient login shell.
+ * `DSH_TERMINAL_SHELL` overrides for local experimentation.
  */
+import { existsSync } from 'node:fs'
+import path from 'node:path'
 import { spawn, type IPty } from 'node-pty'
 import type { WebSocket } from 'ws'
 
@@ -25,11 +29,76 @@ interface Inbound {
   cwd?: string
 }
 
-function defaultShell(): string {
+interface ShellCommand {
+  file: string
+  args: string[]
+}
+
+/**
+ * UTF-8 bootstrap for the Windows PowerShell 5.1 fallback (see `windowsShell`).
+ *
+ * Makes the two things that produce CJK mojibake under a Chinese locale work:
+ * - `Get-Content` (the `cat` alias) reads BOM-less files with the ANSI code
+ *   page (CP936/GBK) by default, decoding UTF-8 bytes into garble like
+ *   `使用用户所用的语言回复` → `浣跨敤鐢ㄦ埛…`. Pin its default Encoding to
+ *   UTF-8 so `cat` of UTF-8 agent presets/yaml/json renders correctly.
+ * - Cmdlet and external-program output is (re)encoded per the console code
+ *   page; forcing `$OutputEncoding` and `[Console]::OutputEncoding` to UTF-8
+ *   keeps whatever reaches the ConPTY side UTF-8.
+ */
+const POWERSHELL_51_UTF8_BOOTSTRAP = [
+  '-NoExit',
+  '-Command',
+  '$PSDefaultParameterValues[\'Get-Content:Encoding\']=\'UTF8\';'
+    + '$OutputEncoding=[Console]::OutputEncoding=[Text.Encoding]::UTF8',
+]
+
+function defaultShell(): ShellCommand {
   const override = process.env.DSH_TERMINAL_SHELL
-  if (override !== undefined && override !== '') return override
-  if (process.platform === 'win32') return 'powershell.exe'
-  return process.env.SHELL !== undefined && process.env.SHELL !== '' ? process.env.SHELL : 'bash'
+  if (override !== undefined && override !== '') return { file: override, args: [] }
+  if (process.platform === 'win32') return windowsShell()
+  const ambient = process.env.SHELL !== undefined && process.env.SHELL !== '' ? process.env.SHELL : 'bash'
+  return { file: ambient, args: [] }
+}
+
+/**
+ * Windows shell selection.
+ *
+ * PowerShell 7 (`pwsh`) is preferred whenever it is installed: it reads files
+ * as UTF-8 and writes UTF-8 to the console by default, so Chinese text in file
+ * output arrives intact. Windows PowerShell 5.1 instead decodes BOM-less files
+ * with the ANSI code page (CP936 on a Chinese locale) and re-encodes console
+ * output through the same page, garbling CJK (`cat` of a UTF-8 preset yaml).
+ *
+ * Without pwsh we keep `powershell.exe` (always present, matches node-pty's
+ * ConPTY default) but spawn it with `POWERSHELL_51_UTF8_BOOTSTRAP` so its
+ * defaults stop garbling CJK. `DSH_TERMINAL_SHELL` skips both paths entirely.
+ */
+function windowsShell(): ShellCommand {
+  // 1. PowerShell 7 from its standard install roots, then PATH.
+  const roots = [
+    process.env.ProgramFiles ?? 'C:\\Program Files',
+    process.env['ProgramFiles(x86)'] ?? 'C:\\Program Files (x86)',
+  ]
+  for (const root of roots) {
+    const pwsh = path.join(root, 'PowerShell', '7', 'pwsh.exe')
+    if (existsSync(pwsh)) return { file: pwsh, args: ['-NoLogo'] }
+  }
+  if (onPath('pwsh')) return { file: 'pwsh', args: ['-NoLogo'] }
+
+  // 2. Windows PowerShell 5.1 fallback, bootstrapped into UTF-8 mode.
+  return { file: 'powershell.exe', args: POWERSHELL_51_UTF8_BOOTSTRAP }
+}
+
+/**
+ * True when `name` can resolve to an executable on PATH (PATHEXT-aware).
+ * node-pty spawns `pwsh` by PATH, but `existsSync` itself does not probe PATH
+ * or apply PATHEXT, so this is checked before falling through to the 5.1 shell.
+ */
+function onPath(name: string): boolean {
+  const dirs = (process.env.PATH ?? '').split(';').filter((dir) => dir !== '')
+  const extensions = (process.env.PATHEXT ?? '.EXE;.CMD;.BAT;.COM').toLowerCase().split(';').filter((ext) => ext !== '')
+  return dirs.some((dir) => extensions.some((ext) => existsSync(path.join(dir, name + ext))))
 }
 
 /** Track one socket's live shells, idempotently tearing them down on close. */
@@ -78,8 +147,9 @@ export class TerminalManager {
     if (bySocket.has(id)) return
     const cols = clamp(message.cols ?? 80, 2, 500)
     const rows = clamp(message.rows ?? 24, 1, 200)
+    const shell = defaultShell()
     try {
-      const pty = spawn(defaultShell(), [], {
+      const pty = spawn(shell.file, shell.args, {
         name: 'xterm-256color',
         cols,
         rows,

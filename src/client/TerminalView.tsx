@@ -29,12 +29,9 @@ export function TerminalView({ terminalId, write, resize, subscribe, onExit }: T
     const fit = new FitAddon()
     terminal.loadAddon(fit)
     terminal.open(container)
-    try {
-      fit.fit()
-    } catch (_unmeasured) {
-      // The panel is still sizing on first paint; the ResizeObserver refits.
-    }
 
+    // Register the geometry listener BEFORE the first fit: the mount-time fit()
+    // fires onResize synchronously, and only a registered listener forwards it.
     const onData = terminal.onData((data) => { write(terminalId, data) })
     const onResize = terminal.onResize(({ cols, rows }) => { resize(terminalId, cols, rows) })
     const unsubscribe = subscribe(terminalId, {
@@ -43,16 +40,33 @@ export function TerminalView({ terminalId, write, resize, subscribe, onExit }: T
       onError: () => { onExit(terminalId) },
     })
 
-    const observer = new ResizeObserver(() => {
+    // Fit the terminal to the panel and push the resulting geometry to the
+    // host PTY. The PTY was spawned at the create-time default (80x24), so the
+    // shell must learn the real panel size or long output (`cat` of a wide
+    // file) keeps wrapping prematurely at column 80. fit() early-returns while
+    // the first render has not measured its cell size yet, so retry on the next
+    // frame and once the document fonts resolve; the ResizeObserver below
+    // covers later panel/window size changes.
+    let disposed = false
+    const fitAndSync = (): void => {
+      if (disposed) return
       try {
         fit.fit()
       } catch (_unmeasured) {
-        // Ignore transient zero-size measurements during the drag.
+        // The panel is still sizing on first paint; a later retry refits.
       }
-    })
+      if (terminal.cols > 0 && terminal.rows > 0) resize(terminalId, terminal.cols, terminal.rows)
+    }
+    fitAndSync()
+    const frameId = requestAnimationFrame(fitAndSync)
+    document.fonts.ready.then(() => fitAndSync()).catch(() => {})
+
+    const observer = new ResizeObserver(fitAndSync)
     observer.observe(container)
 
     return () => {
+      disposed = true
+      cancelAnimationFrame(frameId)
       observer.disconnect()
       unsubscribe()
       onResize.dispose()
