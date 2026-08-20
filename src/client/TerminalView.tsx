@@ -1,8 +1,7 @@
-/** One xterm.js instance bound to a host PTY. */
+/** One xterm.js instance bound to a host PTY, attached while visible. */
 import { useEffect, useRef } from 'react'
-import { Terminal } from '@xterm/xterm'
-import { FitAddon } from '@xterm/addon-fit'
 import type { TerminalHandlers } from './controller.ts'
+import { acquireTerminal } from './terminalCache.ts'
 
 interface TerminalViewProps {
   terminalId: string
@@ -12,6 +11,13 @@ interface TerminalViewProps {
   onExit(id: string): void
 }
 
+/**
+ * Attaches the cached xterm instance for `terminalId` to the DOM. The instance
+ * itself (buffer, scrollback, controller subscription) lives in
+ * `terminalCache` and survives unmounts, so switching sessions, closing the
+ * panel, or switching the active terminal no longer wipes the content — this
+ * effect only re-parents `terminal.element` and re-syncs the geometry.
+ */
 export function TerminalView({ terminalId, write, resize, subscribe, onExit }: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -19,26 +25,12 @@ export function TerminalView({ terminalId, write, resize, subscribe, onExit }: T
     const container = containerRef.current
     if (container === null) return
 
-    const terminal = new Terminal({
-      cursorBlink: true,
-      fontSize: 13,
-      fontFamily: 'Consolas, "Cascadia Mono", Menlo, monospace',
-      theme: { background: 'transparent' },
-      scrollback: 2000,
-    })
-    const fit = new FitAddon()
-    terminal.loadAddon(fit)
-    terminal.open(container)
+    const { terminal, fit } = acquireTerminal(terminalId, { write, resize, subscribe, onExit })
 
-    // Register the geometry listener BEFORE the first fit: the mount-time fit()
-    // fires onResize synchronously, and only a registered listener forwards it.
-    const onData = terminal.onData((data) => { write(terminalId, data) })
-    const onResize = terminal.onResize(({ cols, rows }) => { resize(terminalId, cols, rows) })
-    const unsubscribe = subscribe(terminalId, {
-      onOutput: (data) => { terminal.write(data) },
-      onExit: () => { onExit(terminalId) },
-      onError: () => { onExit(terminalId) },
-    })
+    // First attach opens the terminal into the live container; later attaches
+    // re-parent the existing element (renderer, canvas, buffer all intact).
+    if (terminal.element === null || terminal.element === undefined) terminal.open(container)
+    else container.appendChild(terminal.element)
 
     // Fit the terminal to the panel and push the resulting geometry to the
     // host PTY. The PTY was spawned at the create-time default (80x24), so the
@@ -68,10 +60,8 @@ export function TerminalView({ terminalId, write, resize, subscribe, onExit }: T
       disposed = true
       cancelAnimationFrame(frameId)
       observer.disconnect()
-      unsubscribe()
-      onResize.dispose()
-      onData.dispose()
-      terminal.dispose()
+      // Deliberately NOT disposing the terminal: the cache entry keeps the
+      // buffer and the controller subscription alive for the next attach.
     }
   }, [terminalId, write, resize, subscribe, onExit])
 

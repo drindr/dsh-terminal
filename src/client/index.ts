@@ -7,6 +7,7 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { TerminalController } from './controller.ts'
 import { createTerminalStore } from './store.ts'
+import { disposeTerminal } from './terminalCache.ts'
 import { installStyles, removeStyles } from './styles.ts'
 import { TerminalPanel, type TerminalPanelInjected } from './TerminalPanel.tsx'
 import { TerminalToggleButton } from './TerminalToggleButton.tsx'
@@ -39,7 +40,7 @@ export function apply(ctx: ClientContext): void {
       },
       write: (id, data) => { controller.write(id, data) },
       resize: (id, cols, rows) => { controller.resize(id, cols, rows) },
-      closeTerminal: (id) => { controller.close(id); actions.removeTerminal(id) },
+      closeTerminal: (id) => { controller.close(id); disposeTerminal(id); actions.removeTerminal(id) },
       subscribe: (id, handlers) => controller.subscribe(id, handlers),
     }),
   }, TerminalPanel))
