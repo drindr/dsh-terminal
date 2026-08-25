@@ -14,7 +14,7 @@ dsh-terminal/             本包根目录
   src/client/TerminalPanel.tsx / TerminalTitleBar.tsx / TerminalToggleButton.tsx  面板 UI
   src/client/controller.ts 浏览器 ↔ 宿主 WebSocket 控制器
   src/client/store.ts      会话级终端列表与编号（UI 状态）
-  build.mjs                esbuild 构建：lib/index.js（Host）+ lib/client.js（Browser module）
+  tsdown.config.ts       tsdown 构建：lib/index.js（Host）+ lib/client.js（Browser module）
   docs/                   本目录（插件文档）
 ```
 

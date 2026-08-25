@@ -1,4 +1,4 @@
-/** CSS files are imported as raw text by esbuild (`loader: { '.css': 'text' }`). */
+/** CSS files are imported as raw text (tsdown `dsh-css-text` virtual module). */
 declare module '*.css' {
   const css: string
   export default css
