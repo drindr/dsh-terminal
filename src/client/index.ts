@@ -3,7 +3,7 @@
  * (`conversation.composer.dock`) and the toggle button in the composer tool
  * row (`conversation.input.right`), sharing one per-session store.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { TerminalController } from './controller.ts'
 import { createTerminalStore } from './store.ts'
@@ -18,7 +18,7 @@ export const inject = ['slots']
 /** Mounts the browser half.
  * @param ctx - Client Cordis context.
  */
-export function apply(ctx: ClientContext): void {
+export function apply(ctx: Context): void {
   const controller = new TerminalController()
   const store = createTerminalStore()
 

@@ -4,7 +4,7 @@
  * (`conversation.input.right`). Live terminal processes are NOT store data —
  * they live in the controller's WebSocket, keyed by terminal id.
  */
-import { defineStore } from '@deepseek-ai/dsh-client-runtime/client'
+import { defineStore } from '@deepseek-ai/dsh-client-store'
 
 /** Store-facing metadata for one terminal row. Exited terminals are removed, never marked. */
 export interface TerminalMeta {
