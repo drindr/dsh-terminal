@@ -23,6 +23,28 @@ pnpm run build
 
 产物：`lib/index.js`（宿主端）、`lib/client.js`（浏览器端，内联 xterm.js）。
 
+## 开发热重载
+
+启用宿主端和客户端 HMR 后，源码改动可以自动加载：
+
+```powershell
+pnpm run dev        # 也可 pnpm run watch；首次构建后监听 src/** 和 tsdown.config.ts
+```
+
+`watch.mjs` 使用与普通构建相同的 tsdown 配置；构建失败会输出错误，修复后继续监听。
+运行中的 `dsh web` 还需要配置两条 HMR 链路（具体配置随 DSH 版本而异）：
+
+- **浏览器端**：启用客户端 HMR，并确认它监视本插件的 `lib/client.js`。
+  未启用时，构建后需刷新页面。
+- **宿主端**：启用 cordis `hmr`，在 `$DSH_HOME/profiles/web/cordis.patch.yml`
+  中将本包真实路径加入监视范围，并确认没有被 node_modules 忽略规则排除。
+  `lib/index.js` 变化时重建 `dsh-terminal` fiber（已开终端会被回收）。
+  修改宿主 HMR 配置后可能需要重启 `dsh web`；本仓库不会自动修改该配置。
+
+> tsdown 的 `dsh-unchanged-output` 插件在产物字节完全一致时不会覆写文件，
+> 因此只改客户端源码不会白白触发宿主 fiber 重载，反之亦然。
+> 请使用满足 tsdown 要求的 Node.js（^22.18.0 或 >=24.11.0）和兼容的 pnpm。
+
 ## 安装
 
 本插件面向 dsh 的 `web` profile，安装与宿主壳无关：

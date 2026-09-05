@@ -20,7 +20,7 @@
 import { readFile } from 'node:fs/promises'
 import { dirname, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { UserConfig } from 'tsdown'
+import type { TsdownPlugin, UserConfig } from 'tsdown'
 
 /** Module-table handoff id: the loader entry name (the package name). */
 const id = 'dsh-terminal'
@@ -63,6 +63,22 @@ const cssTextPlugin = {
   },
 }
 
+/** Leave identical artifacts untouched so client edits cannot restart host PTYs. */
+const unchangedOutputPlugin: TsdownPlugin = {
+  name: 'dsh-unchanged-output',
+  async generateBundle(options, bundle) {
+    for (const [name, output] of Object.entries(bundle)) {
+      const file = resolvePath(options.dir ?? 'lib', name)
+      const bytes = Buffer.from(output.type === 'chunk' ? output.code : output.source)
+      try {
+        if (bytes.equals(await readFile(file))) delete bundle[name]
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      }
+    }
+  },
+}
+
 export default [
   {
     entry: { index: 'src/index.ts' },
@@ -74,6 +90,7 @@ export default [
     dts: false,
     clean: false,
     deps: { neverBundle: [/^@deepseek-ai\//, 'node-pty', 'ws'] },
+    plugins: [unchangedOutputPlugin],
   },
   {
     entry: { client: 'src/client/index.ts' },
@@ -94,7 +111,7 @@ export default [
     inputOptions: {
       resolve: { conditionNames: ['browser', 'import', 'require', 'default'] },
     },
-    plugins: [cssTextPlugin],
+    plugins: [cssTextPlugin, unchangedOutputPlugin],
     outputOptions: {
       entryFileNames: 'client.js',
       banner: `window.__ModuleLoader__.load({ id: ${JSON.stringify(id)}, factory: (require) => {`,
