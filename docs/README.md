@@ -9,7 +9,7 @@ VSCode 风格的内置终端面板：浏览器端 [xterm.js](https://xtermjs.org
 dsh-terminal/             本包根目录
   src/index.ts            宿主半端：/terminal WebSocket upgrade 路由 + 信任校验 + teardown
   src/host/manager.ts     宿主半端：终端会话管理（node-pty 生命周期 / 消息路由 / 编码与 shell 选择）
-  src/client/index.ts     浏览器半端：槽位注册（conversation.composer.dock + conversation.input.right）
+  src/client/index.ts     浏览器半端：槽位注册（conversation.input.dock + conversation.input.right）
   src/client/TerminalView.tsx 单个 xterm.js 实例
   src/client/TerminalPanel.tsx / TerminalTitleBar.tsx / TerminalToggleButton.tsx  面板 UI
   src/client/controller.ts 浏览器 ↔ 宿主 WebSocket 控制器
@@ -91,7 +91,7 @@ dsh plugin --profile web add link:.
 
 - 编号由会话级 store 的 `addTerminal` 分配，规则是「当前会话内最小的未用正整数」：
   关闭终端 N 后，它的编号归空闲，下一次新建在当前会话从 N 重新开始。
-- `conversation.composer.dock` 槽位声明为 `scope: 'session'`，每个会话各有一个 store
+- `conversation.input.dock` 槽位声明为 `scope: 'session'`，每个会话各有一个 store
   实例，因此每个会话的编号都从「终端 1」开始，互不串号。
 - `TerminalController.create` 只负责生成全局唯一的终端 id（时间戳 + 随机后缀），
   不再持有跨会话的全局计数器。

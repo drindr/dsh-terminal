@@ -1,4 +1,4 @@
-/** The resizable terminal panel docked under the composer card. */
+/** The resizable terminal panel docked above the composer card. */
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import type { PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import type { TerminalHandlers } from './controller.ts'
@@ -18,7 +18,7 @@ export interface TerminalPanelInjected {
 }
 
 export type TerminalPanelProps =
-  PropsRuntime<'conversation.composer.dock'> & PropsStore<TerminalStore> & TerminalPanelInjected
+  PropsRuntime<'conversation.input.dock'> & PropsStore<TerminalStore> & TerminalPanelInjected
 
 const MIN_HEIGHT = 120
 const MAX_HEIGHT = 720

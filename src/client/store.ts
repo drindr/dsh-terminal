@@ -1,6 +1,6 @@
 /**
  * Client-side terminal store: per-session viewing state shared by the panel
- * (`conversation.composer.dock`) and the toggle button
+ * (`conversation.input.dock`) and the toggle button
  * (`conversation.input.right`). Live terminal processes are NOT store data —
  * they live in the controller's WebSocket, keyed by terminal id.
  */
@@ -34,7 +34,7 @@ export function createTerminalStore() {
        * Add a terminal row, numbering it inside this session's list: the
        * smallest positive integer no other open terminal in this session uses,
        * so closing terminal N frees N for the next creation. Store instances
-       * are session-scoped (`conversation.composer.dock` declares
+       * are session-scoped (`conversation.input.dock` declares
        * `scope: 'session'`), which restarts numbering per session.
        */
       addTerminal: (d, id: string) => {

@@ -1,6 +1,6 @@
 /**
- * dsh-terminal browser half: mounts the terminal panel under the composer
- * (`conversation.composer.dock`) and the toggle button in the composer tool
+ * dsh-terminal browser half: mounts the terminal panel above the composer
+ * (`conversation.input.dock`) and the toggle button in the composer tool
  * row (`conversation.input.right`), sharing one per-session store.
  */
 import type { Context } from '@deepseek-ai/cordis'
@@ -27,8 +27,8 @@ export function apply(ctx: Context): void {
     return () => { removeStyles() }
   }, 'dsh-terminal: styles')
 
-  ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
-    name: 'conversation.composer.dock',
+  ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
+    name: 'conversation.input.dock',
     id: 'terminal',
     order: 100,
     store,
